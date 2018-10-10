@@ -55,11 +55,11 @@ entry:
 	# Load the physical address of entry_pgdir into cr3.  entry_pgdir
 	# is defined in entrypgdir.c.
 	movl	$(RELOC(entry_pgdir)), %eax
-	movl	%eax, %cr3
+	movl	%eax, %cr3			//cr3 寄存器保存页目录表的物理基地址
 	# Turn on paging.
 	movl	%cr0, %eax
 	orl	$(CR0_PE|CR0_PG|CR0_WP), %eax
-	movl	%eax, %cr0
+	movl	%eax, %cr0			//cr0 的最高位PG位设置为1后，正式打开分页功能
 
 	# Now paging is enabled, but we're still running at a low EIP
 	# (why is this okay?).  Jump up above KERNBASE before entering
@@ -90,7 +90,7 @@ spin:	jmp	spin
 	.p2align	PGSHIFT		# force page alignment
 	.globl		bootstack
 bootstack:
-	.space		KSTKSIZE
-	.globl		bootstacktop   
+	.space		KSTKSIZE			//申请KSTKSIZE字节的空间作为栈
+	.globl		bootstacktop   		//.globl表示导出bootstacktop
 bootstacktop:
 
