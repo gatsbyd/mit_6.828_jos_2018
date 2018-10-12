@@ -256,11 +256,26 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+	// 这里初始化pages中的每一项，建立page_free_list链表
+	// 已使用的物理页包括如下几部分：
+	// 1）第一个物理页是IDT所在，需要标识为已用
+	// 2）[IOPHYSMEM, EXTPHYSMEM)称为IO hole的区域，需要标识为已用。
+	// 3）EXTPHYSMEM是内核加载的起始位置，终止位置可以由boot_alloc(0)给出（理由是boot_alloc()分配的内存是内核的最尾部），这块区域也要标识
 	size_t i;
+	size_t io_hole_start_page = (size_t)IOPHYSMEM / PGSIZE;
+	size_t kernel_end_page = PADDR(boot_alloc(0)) / PGSIZE;		//这里调了半天，boot_alloc返回的是虚拟地址，需要转为物理地址
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = page_free_list;
-		page_free_list = &pages[i];
+		if (i == 0) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else if (i >= io_hole_start_page && i < kernel_end_page) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		} else {
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
 	}
 }
 
@@ -279,8 +294,17 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
-	// Fill this function in
-	return 0;
+	struct PageInfo *ret = page_free_list;
+	if (ret == NULL) {
+		cprintf("page_alloc: out of free memory\n");
+		return NULL;
+	}
+	page_free_list = ret->pp_link;
+	ret->pp_link = NULL;
+	if (alloc_flags & ALLOC_ZERO) {
+		memset(page2kva(ret), 0, PGSIZE);
+	}
+	return ret;
 }
 
 //
@@ -293,6 +317,11 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if (pp->pp_ref != 0 || pp->pp_link != NULL) {
+		panic("page_free: pp->pp_ref is nonzero or pp->pp_link is not NULL\n");
+	}
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
