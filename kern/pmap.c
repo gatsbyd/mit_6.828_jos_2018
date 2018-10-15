@@ -176,6 +176,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	// 将虚拟地址的UPAGES映射到物理地址pages数组开始的位置
+	boot_map_region(kern_pgdir, UPAGES, PTSIZE, PADDR(pages), PTE_U);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -189,6 +191,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
 	// 'bootstack'定义在/kernel/entry.
+	boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -198,6 +201,7 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, KERNBASE, 0xffffffff - KERNBASE, 0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -394,17 +398,18 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-	int pages = size / PGSIZE + 1;
-	uintptr_t cur_va = va;
-	physaddr_t cur_pa = pa;
-	for (int i = 0; i < pages; i++) {
-		cur_va = va + i * PGSIZE;
-		cur_pa = pa + i * PGSIZE;
-		pte_t *pte = pgdir_walk(kern_pgdir, (void *)cur_va, 1);
+	size_t pgs = size / PGSIZE;
+	if (size % PGSIZE != 0) {
+		pgs++;
+	}
+	for (int i = 0; i < pgs; i++) {
+		pte_t *pte = pgdir_walk(pgdir, (void *)va, 1);
 		if (pte == NULL) {
 			panic("boot_map_region(): out of memory\n");
 		}
-		*pte = cur_pa | PTE_P | perm;
+		*pte = pa | PTE_P | perm;
+		pa += PGSIZE;
+		va += PGSIZE;
 	}
 }
 
