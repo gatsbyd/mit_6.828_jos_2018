@@ -361,7 +361,22 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
-	return NULL;
+	pde_t* pde_ptr = pgdir + PDX(va);
+	if (!(*pde_ptr & PTE_P)) {								//页表还没有分配
+		if (create) {
+			//分配一个页作为页表
+			struct PageInfo *pp = page_alloc(1);
+			if (pp == NULL) {
+				return NULL;
+			}
+			pp->pp_ref++;
+			*pde_ptr = (page2pa(pp)) | PTE_P | PTE_U | PTE_W;	//更新页目录
+		} else {
+			return NULL;
+		}
+	}
+
+	return (pte_t *)KADDR(PTE_ADDR(*pde_ptr)) + PTX(va);		//这里记得转为pte_t*类型，因为KADDR返回的的是void*类型。调了一个多小时才发现
 }
 
 //
@@ -379,6 +394,18 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+	int pages = size / PGSIZE + 1;
+	uintptr_t cur_va = va;
+	physaddr_t cur_pa = pa;
+	for (int i = 0; i < pages; i++) {
+		cur_va = va + i * PGSIZE;
+		cur_pa = pa + i * PGSIZE;
+		pte_t *pte = pgdir_walk(kern_pgdir, (void *)cur_va, 1);
+		if (pte == NULL) {
+			panic("boot_map_region(): out of memory\n");
+		}
+		*pte = cur_pa | PTE_P | perm;
+	}
 }
 
 //
@@ -410,6 +437,18 @@ int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+	pte_t *pte = pgdir_walk(pgdir, va, 1);
+	if (pte == NULL) {
+		return -E_NO_MEM;
+	}
+	pp->pp_ref++;										//引用加1
+	if ((*pte) & PTE_P) {								//当前虚拟地址va已经被映射过，需要先释放
+		page_remove(pgdir, va);
+	}
+	physaddr_t pa = page2pa(pp);
+	*pte = pa | perm | PTE_P;
+	pgdir[PDX(va)] |= perm;
+	
 	return 0;
 }
 
@@ -428,7 +467,20 @@ struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
-	return NULL;
+	struct PageInfo *pp;
+	pte_t *pte =  pgdir_walk(pgdir, va, 0);			//如果对应的页表不存在，不进行创建
+	if (pte == NULL) {
+		return NULL;
+	}
+	if (!(*pte) & PTE_P) {
+		return NULL;
+	}
+	physaddr_t pa = PTE_ADDR(*pte);					//va对应的物理
+	pp = pa2page(pa);								//物理地址对应的PageInfo结构地址
+	if (pte_store != NULL) {
+		*pte_store = pte;
+	}
+	return pp;
 }
 
 //
@@ -450,6 +502,14 @@ void
 page_remove(pde_t *pgdir, void *va)
 {
 	// Fill this function in
+	pte_t *pte_store;
+	struct PageInfo *pp = page_lookup(pgdir, va, &pte_store);
+	if (pp == NULL) {
+		return;
+	}
+	page_decref(pp);
+	*pte_store = 0;
+	tlb_invalidate(pgdir, va);
 }
 
 //
