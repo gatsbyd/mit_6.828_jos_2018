@@ -69,7 +69,7 @@ bad:
 // Read 'count' bytes at 'offset' from kernel into physical address 'pa'.
 // Might copy more than asked
 void
-readseg(uint32_t pa, uint32_t count, uint32_t offset)
+readseg(uint32_t pa, uint32_t count, uint32_t offset)	//从磁盘offset字节(offset相对于第一个扇区第一个字节开始算)对应的扇区开始读取count字节到pa内存处
 {
 	uint32_t end_pa;
 
