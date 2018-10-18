@@ -40,11 +40,11 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_hello, ENV_TYPE_USER);
+	ENV_CREATE(user_hello, ENV_TYPE_USER);		//会调用env_create(_binary_obj_user_hello_start, ENV_TYPE_USER)
 #endif // TEST*
 
 	// We only have one user environment for now, so just run it.
-	env_run(&envs[0]);
+	env_run(&envs[0]);							//envs[0]已经在env_create的时候初始化过了
 }
 
 
