@@ -80,9 +80,9 @@ trap_init(void)
 	void th13();
 	void th14();
 	void th16();
-	SETGATE(idt[0], 0, GD_KT, th0, 0);
+	SETGATE(idt[0], 0, GD_KT, th0, 0);		//格式如下：SETGATE(gate, istrap, sel, off, dpl)，定义在inc/mmu.h中
 	SETGATE(idt[1], 0, GD_KT, th1, 0);
-	SETGATE(idt[3], 0, GD_KT, th3, 0);
+	SETGATE(idt[3], 0, GD_KT, th3, 3);
 	SETGATE(idt[4], 0, GD_KT, th4, 0);
 	SETGATE(idt[5], 0, GD_KT, th5, 0);
 	SETGATE(idt[6], 0, GD_KT, th6, 0);
@@ -178,7 +178,11 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 		return;
 	}
-	
+	if (tf->tf_trapno == T_BRKPT) {
+		monitor(tf);
+		return;
+	}
+
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
