@@ -80,6 +80,7 @@ trap_init(void)
 	void th13();
 	void th14();
 	void th16();
+	void th_syscall();
 	SETGATE(idt[0], 0, GD_KT, th0, 0);		//格式如下：SETGATE(gate, istrap, sel, off, dpl)，定义在inc/mmu.h中
 	SETGATE(idt[1], 0, GD_KT, th1, 0);
 	SETGATE(idt[3], 0, GD_KT, th3, 3);
@@ -95,6 +96,8 @@ trap_init(void)
 	SETGATE(idt[13], 0, GD_KT, th13, 0);
 	SETGATE(idt[14], 0, GD_KT, th14, 0);
 	SETGATE(idt[16], 0, GD_KT, th16, 0);
+
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, th_syscall, 3);		//为什么门的DPL要定义为3，参考《x86汇编语言-从实模式到保护模式》p345
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -180,6 +183,12 @@ trap_dispatch(struct Trapframe *tf)
 	}
 	if (tf->tf_trapno == T_BRKPT) {
 		monitor(tf);
+		return;
+	}
+
+	if (tf->tf_trapno == T_SYSCALL) {
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax, tf->tf_regs.reg_edx, tf->tf_regs.reg_ecx,
+			tf->tf_regs.reg_ebx, tf->tf_regs.reg_edi, tf->tf_regs.reg_esi);
 		return;
 	}
 
