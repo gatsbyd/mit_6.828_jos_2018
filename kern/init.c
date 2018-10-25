@@ -35,7 +35,7 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
-	mp_init();		//初始化cpus数组，bootcpu指针，LAPIC地址lapic
+	mp_init();		//初始化cpus数组，bootcpu指针，ncpu，LAPIC地址lapicaddr
 	lapic_init();	//初始化LAPIC，将虚拟地址MMIOBASE映射到lapicaddr(lapicaddr is the physical address of the LAPIC's 4K MMIO region)
 
 	// Lab 4 multitasking initialization functions
@@ -78,7 +78,7 @@ boot_aps(void)
 
 	// Boot each AP one at a time
 	for (c = cpus; c < cpus + ncpu; c++) {
-		if (c == cpus + cpunum())  // We've started already.
+		if (c == cpus + cpunum())  // We've started already. 现在运行在BSP
 			continue;
 
 		// Tell mpentry.S what stack to use 
