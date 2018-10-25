@@ -52,11 +52,19 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
+<<<<<<< HEAD
 	ENV_CREATE(user_primes, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!
 	sched_yield();
+=======
+	ENV_CREATE(user_hello, ENV_TYPE_USER);		//会调用env_create(_binary_obj_user_hello_start, ENV_TYPE_USER)
+#endif // TEST*
+
+	// We only have one user environment for now, so just run it.
+	env_run(&envs[0]);							//envs[0]已经在env_create的时候初始化过了
+>>>>>>> lab3
 }
 
 // While boot_aps is booting a given CPU, it communicates the per-core
