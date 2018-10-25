@@ -35,8 +35,8 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
-	mp_init();
-	lapic_init();
+	mp_init();		//初始化cpus数组，bootcpu指针，LAPIC地址lapic
+	lapic_init();	//初始化LAPIC，将虚拟地址MMIOBASE映射到lapicaddr(lapicaddr is the physical address of the LAPIC's 4K MMIO region)
 
 	// Lab 4 multitasking initialization functions
 	pic_init();
@@ -45,26 +45,18 @@ i386_init(void)
 	// Your code here:
 
 	// Starting non-boot CPUs
-	boot_aps();
+	boot_aps();		//将初始化代码拷贝到MPENTRY_PADDR处，然后依次启动所有AP
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-<<<<<<< HEAD
 	ENV_CREATE(user_primes, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!
 	sched_yield();
-=======
-	ENV_CREATE(user_hello, ENV_TYPE_USER);		//会调用env_create(_binary_obj_user_hello_start, ENV_TYPE_USER)
-#endif // TEST*
-
-	// We only have one user environment for now, so just run it.
-	env_run(&envs[0]);							//envs[0]已经在env_create的时候初始化过了
->>>>>>> lab3
 }
 
 // While boot_aps is booting a given CPU, it communicates the per-core
