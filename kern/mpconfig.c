@@ -13,7 +13,7 @@
 struct CpuInfo cpus[NCPU];
 struct CpuInfo *bootcpu;
 int ismp;
-int ncpu;
+int ncpu;						//总CPU数，不超过NCPU(8)
 
 // Per-CPU kernel stacks
 unsigned char percpu_kstacks[NCPU][KSTKSIZE]
@@ -181,10 +181,10 @@ mp_init(void)
 		switch (*p) {
 		case MPPROC:
 			proc = (struct mpproc *)p;
-			if (proc->flags & MPPROC_BOOT)
+			if (proc->flags & MPPROC_BOOT)			//如果设置了该标志位表明当前CPU是BSP
 				bootcpu = &cpus[ncpu];
 			if (ncpu < NCPU) {
-				cpus[ncpu].cpu_id = ncpu;
+				cpus[ncpu].cpu_id = ncpu;			//设置id
 				ncpu++;
 			} else {
 				cprintf("SMP: too many CPUs, CPU %d disabled\n",
