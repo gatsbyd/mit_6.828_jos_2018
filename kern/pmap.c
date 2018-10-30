@@ -107,7 +107,6 @@ boot_alloc(uint32_t n)
 	// LAB 2: Your code here.
 	result = nextfree;
 	nextfree = ROUNDUP((char *)result + n, PGSIZE);
-	cprintf("boot_alloc memory at %x, next memory allocate at %x\n", result, nextfree);
 	return result;
 }
 
@@ -359,7 +358,6 @@ page_alloc(int alloc_flags)
 {
 	struct PageInfo *ret = page_free_list;
 	if (ret == NULL) {
-		cprintf("page_alloc: out of free memory\n");
 		return NULL;
 	}
 	page_free_list = ret->pp_link;

@@ -362,7 +362,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	ph = (struct Proghdr *) ((uint8_t *) ELFHDR + ELFHDR->e_phoff);
 	ph_num = ELFHDR->e_phnum;
 
-	lcr3(PADDR(e->env_pgdir));			//这步别忘了，虽然到目前位置e->env_pgdir和kern_pgdir除了PDX(UVPT)这一项不同，其他都一样。
+	lcr3(PADDR(e->env_pgdir));			//这步别忘了，虽然到目前为止e->env_pgdir和kern_pgdir除了PDX(UVPT)这一项不同，其他都一样。
 										//但是后面会给e->env_pgdir增加映射关系
 
 	for (int i = 0; i < ph_num; i++) {
@@ -532,14 +532,14 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
-	if (curenv != NULL && curenv->env_status == ENV_RUNNING) {
+	if (curenv != NULL && curenv->env_status == ENV_RUNNING) {	//将原来正在运行的Env设置为ENV_RUNNABLE
 		curenv->env_status = ENV_RUNNABLE;
 	}
 	curenv = e;
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
-	unlock_kernel();
+	unlock_kernel();						//注意不能放最后，因为在env_pop_tr()后的语句执行不到
 	env_pop_tf(&e->env_tf);
 }
 
