@@ -354,6 +354,25 @@ page_fault_handler(struct Trapframe *tf)
 	//   (the 'tf' variable points at 'curenv->env_tf').
 
 	// LAB 4: Your code here.
+	if (curenv->env_pgfault_upcall) {
+		uintptr_t stacktop = UXSTACKTOP;
+		if (UXSTACKTOP - PGSIZE < tf->tf_esp && tf->tf_esp < UXSTACKTOP) {
+			stacktop = tf->tf_esp;
+		}
+		uint32_t size = sizeof(struct UTrapframe) + sizeof(uint32_t);
+		user_mem_assert(curenv, (void *)stacktop - size, size, PTE_U | PTE_W);
+		struct UTrapframe *utr = (struct UTrapframe *)(stacktop - size);
+		utr->utf_fault_va = fault_va;
+		utr->utf_err = tf->tf_err;
+		utr->utf_regs = tf->tf_regs;
+		utr->utf_eip = tf->tf_eip;
+		utr->utf_eflags = tf->tf_eflags;
+		utr->utf_esp = tf->tf_esp;				//UXSTACKTOP栈上需要保存发生缺页异常时的%esp和%eip
+
+		curenv->env_tf.tf_eip = (uintptr_t)curenv->env_pgfault_upcall;
+		curenv->env_tf.tf_esp = (uintptr_t)utr;
+		env_run(curenv);			//重新进入用户态
+	}
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
