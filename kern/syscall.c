@@ -225,8 +225,8 @@ sys_page_map(envid_t srcenvid, void *srcva,
 
 	//	-E_INVAL if srcva >= UTOP or srcva is not page-aligned,
 	//		or dstva >= UTOP or dstva is not page-aligned.
-	if (srcva>=(void*)UTOP || dstva>=(void*)UTOP || 
-		ROUNDDOWN(srcva,PGSIZE)!=srcva || ROUNDDOWN(dstva,PGSIZE)!=dstva) 
+	if (srcva >= (void*)UTOP || dstva >= (void*)UTOP || 
+		ROUNDDOWN(srcva,PGSIZE) != srcva || ROUNDDOWN(dstva,PGSIZE) != dstva) 
 		return -E_INVAL;
 
 	//	-E_INVAL is srcva is not mapped in srcenvid's address space.
