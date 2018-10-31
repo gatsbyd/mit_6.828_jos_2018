@@ -108,12 +108,12 @@ fork(void)
 	}
 
 	uint32_t addr;
-	for (addr = 0; addr < USTACKTOP; addr += PGSIZE)
+	for (addr = 0; addr < USTACKTOP; addr += PGSIZE) {
 		if ((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P) //为什么uvpt[pagenumber]能访问到第pagenumber项页表条目：https://pdos.csail.mit.edu/6.828/2018/labs/lab4/uvpt.html
 			&& (uvpt[PGNUM(addr)] & PTE_U)) {
 			duppage(envid, PGNUM(addr));	//拷贝当前进程映射关系到子进程
 		}
-
+	}
 	int r;
 	if ((r = sys_page_alloc(envid, (void *)(UXSTACKTOP-PGSIZE), PTE_P | PTE_W | PTE_U)) < 0)	//为子进程分配异常栈
 		panic("sys_page_alloc: %e", r);
