@@ -312,7 +312,33 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *rcvenv;
+	int ret = envid2env(envid, &rcvenv, 0);
+	if (ret) return ret;
+	if (!rcvenv->env_ipc_recving) return -E_IPC_NOT_RECV;
+
+	if (srcva < (void*)UTOP) {
+		pte_t *pte;
+		struct PageInfo *pg = page_lookup(curenv->env_pgdir, srcva, &pte);
+
+		//按照注释的顺序进行判定
+		if (srcva != ROUNDDOWN(srcva, PGSIZE)) return -E_INVAL;		//srcva没有页对齐
+		if ((*pte & perm) != perm) return -E_INVAL;					//perm应该是*pte的子集
+		if (!pg) return -E_INVAL;									//srcva还没有映射到物理页
+		if ((perm & PTE_W) && !(*pte & PTE_W)) return -E_INVAL;		//写权限
+		
+		if (rcvenv->env_ipc_dstva < (void*)UTOP) {
+			ret = page_insert(rcvenv->env_pgdir, pg, rcvenv->env_ipc_dstva, perm); //共享相同的映射关系
+			if (ret) return ret;
+			rcvenv->env_ipc_perm = perm;
+		}
+	}
+	rcvenv->env_ipc_recving = 0;					//标记接受进程可再次接受信息
+	rcvenv->env_ipc_from = curenv->env_id;
+	rcvenv->env_ipc_value = value; 
+	rcvenv->env_status = ENV_RUNNABLE;
+	rcvenv->env_tf.tf_regs.reg_eax = 0;
+	return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -330,7 +356,13 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	if (dstva < (void *)UTOP && dstva != ROUNDDOWN(dstva, PGSIZE)) {
+		return -E_INVAL;
+	}
+	curenv->env_ipc_recving = 1;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	curenv->env_ipc_dstva = dstva;
+	sys_yield();
 	return 0;
 }
 
@@ -378,6 +410,12 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			break;
 		case SYS_env_set_pgfault_upcall:
 			ret = sys_env_set_pgfault_upcall((envid_t)a1, (void *)a2);
+			break;
+		case SYS_ipc_try_send:
+			ret = sys_ipc_try_send((envid_t)a1, (uint32_t)a2, (void *)a3, (unsigned)a4);
+			break;
+		case SYS_ipc_recv:
+			ret = sys_ipc_recv((void *)a1);
 			break;
 		default:
 			return -E_INVAL;
