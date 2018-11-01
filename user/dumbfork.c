@@ -30,10 +30,10 @@ duppage(envid_t dstenv, void *addr)
 	// This is NOT what you should do in your fork.
 	if ((r = sys_page_alloc(dstenv, addr, PTE_P|PTE_U|PTE_W)) < 0)
 		panic("sys_page_alloc: %e", r);
-	if ((r = sys_page_map(dstenv, addr, 0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)
-		panic("sys_page_map: %e", r);
-	memmove(UTEMP, addr, PGSIZE);
-	if ((r = sys_page_unmap(0, UTEMP)) < 0)
+	if ((r = sys_page_map(dstenv, addr, 0, UTEMP, PTE_P|PTE_U|PTE_W)) < 0)	//这里第三个参数0代表当前用户环境，具体看envid2env()实现。
+		panic("sys_page_map: %e", r);				//效果是使当前环境UTEMP指向和dstenv环境addr相同的内存处
+	memmove(UTEMP, addr, PGSIZE);					//将当前环境地址addr处的一页拷贝到当前环境地址UTMEP处（当前环境地址UTEMP和dstenv环境地址addr共享同一物理页）
+	if ((r = sys_page_unmap(0, UTEMP)) < 0)			//效果就是当前环境地址addr和dstenv环境地址addr指向的一页的内容是一样的，但是它们不是同一物理页
 		panic("sys_page_unmap: %e", r);
 }
 

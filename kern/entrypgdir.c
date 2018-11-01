@@ -1,7 +1,7 @@
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 
-pte_t entry_pgtable[NPTENTRIES];
+pte_t entry_pgtable[NPTENTRIES];			//这是uint32_t类型长度为1024的数组
 
 // The entry.S page directory maps the first 4MB of physical memory
 // starting at virtual address KERNBASE (that is, it maps virtual
@@ -17,20 +17,20 @@ pte_t entry_pgtable[NPTENTRIES];
 // related to linking and static initializers, we use "x + PTE_P"
 // here, rather than the more standard "x | PTE_P".  Everywhere else
 // you should use "|" to combine flags.
-__attribute__((__aligned__(PGSIZE)))
-pde_t entry_pgdir[NPDENTRIES] = {
+__attribute__((__aligned__(PGSIZE)))		//强制编译器分配给entry_pgdir的空间地址是4096(一页大小)对齐的
+pde_t entry_pgdir[NPDENTRIES] = {			//页目录表。这是uint32_t类型长度为1024的数组
 	// Map VA's [0, 4MB) to PA's [0, 4MB)
 	[0]
-		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P,
+		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P,	//设置页目录表的第0项
 	// Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
 	[KERNBASE>>PDXSHIFT]
-		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W
+		= ((uintptr_t)entry_pgtable - KERNBASE) + PTE_P + PTE_W	//设置页目录表的第KERNBASE>>PDXSHIFT(0xF0000000>>22)项
 };
 
 // Entry 0 of the page table maps to physical page 0, entry 1 to
 // physical page 1, etc.
-__attribute__((__aligned__(PGSIZE)))
-pte_t entry_pgtable[NPTENTRIES] = {
+__attribute__((__aligned__(PGSIZE)))		//强制编译器分配给entry_pgtable的空间地址是4096(一页大小)对齐的
+pte_t entry_pgtable[NPTENTRIES] = {			//页表。这是uint32_t类型长度为1024的数组
 	0x000000 | PTE_P | PTE_W,
 	0x001000 | PTE_P | PTE_W,
 	0x002000 | PTE_P | PTE_W,
