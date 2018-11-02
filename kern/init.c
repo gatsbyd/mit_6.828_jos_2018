@@ -48,7 +48,7 @@ i386_init(void)
 	boot_aps();		//将初始化代码拷贝到MPENTRY_PADDR处，然后依次启动所有AP
 
 	// Start fs.
-	// ENV_CREATE(fs_fs, ENV_TYPE_FS);
+	ENV_CREATE(fs_fs, ENV_TYPE_FS);		//创建文件系统Env
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!
