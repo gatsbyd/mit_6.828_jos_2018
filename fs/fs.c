@@ -62,7 +62,13 @@ alloc_block(void)
 	// super->s_nblocks blocks in the disk altogether.
 
 	// LAB 5: Your code here.
-	panic("alloc_block not implemented");
+	for (uint32_t blockno = 0; blockno <= super->s_nblocks; blockno++) {
+		if (block_is_free(blockno)) {					//搜索free的block
+			bitmap[blockno / 32] &= !(1 << (blockno % 32));		//标记为已使用
+			return blockno;
+		}
+	}
+	
 	return -E_NO_DISK;
 }
 
