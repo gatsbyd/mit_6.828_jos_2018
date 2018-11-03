@@ -337,9 +337,9 @@ umain(int argc, char **argv)
 	outw(0x8A00, 0x8A00);
 	cprintf("FS can do I/O\n");
 
-	serve_init();
-	fs_init();
-        fs_test();
+	serve_init();	//
+	fs_init();		//设置缺页处理函数，初始化super指针，初始化bitmap指针
+    fs_test();		//测试函数
 	serve();
 }
 

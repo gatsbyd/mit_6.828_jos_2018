@@ -111,14 +111,14 @@ fs_init(void)
 		ide_set_disk(1);
 	else
 		ide_set_disk(0);
-	bc_init();
+	bc_init();			//设置缺页处理函数
 
 	// Set "super" to point to the super block.
-	super = diskaddr(1);
+	super = diskaddr(1);			//初始化super指针
 	check_super();
 
 	// Set "bitmap" to the beginning of the first bitmap block.
-	bitmap = diskaddr(2);
+	bitmap = diskaddr(2);			//初始化bitmap指针
 	check_bitmap();
 	
 }
@@ -142,8 +142,31 @@ fs_init(void)
 static int
 file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool alloc)
 {
-       // LAB 5: Your code here.
-       panic("file_block_walk not implemented");
+    // LAB 5: Your code here.
+	int bn;
+	uint32_t *indirects;
+	if (filebno >= NDIRECT + NINDIRECT)
+		return -E_INVAL;
+
+	if (filebno < NDIRECT) {
+		*ppdiskbno = &(f->f_direct[filebno]);
+	} else {
+		if (f->f_indirect) {
+			indirects = diskaddr(f->f_indirect);
+			*ppdiskbno = &(indirects[filebno - NDIRECT]);
+		} else {
+			if (!alloc)
+				return -E_NOT_FOUND;
+			if ((bn = alloc_block()) < 0)
+				return bn;
+			f->f_indirect = bn;
+			flush_block(diskaddr(bn));
+			indirects = diskaddr(bn);
+			*ppdiskbno = &(indirects[filebno - NDIRECT]);
+		}
+	}
+
+	return 0;
 }
 
 // Set *blk to the address in memory where the filebno'th
@@ -158,7 +181,22 @@ int
 file_get_block(struct File *f, uint32_t filebno, char **blk)
 {
        // LAB 5: Your code here.
-       panic("file_get_block not implemented");
+       	int r;
+	   	uint32_t *pdiskbno;
+	   	if ((r = file_block_walk(f, filebno, &pdiskbno, true)) < 0) {
+		  	return r;
+	   	}
+
+		int bn;
+		if (*pdiskbno == 0) {			//此时*pdiskbno保存着文件f第filebno块block的索引
+			if ((bn = alloc_block()) < 0) {
+				return bn;
+			}
+			*pdiskbno = bn;
+			flush_block(diskaddr(bn));
+		}
+		*blk = diskaddr(*pdiskbno);
+	   	return 0;
 }
 
 // Try to find a file named "name" in dir.  If so, set *file to it.
@@ -177,7 +215,7 @@ dir_lookup(struct File *dir, const char *name, struct File **file)
 	// We maintain the invariant that the size of a directory-file
 	// is always a multiple of the file system's block size.
 	assert((dir->f_size % BLKSIZE) == 0);
-	nblock = dir->f_size / BLKSIZE;
+	nblock = dir->f_size / BLKSIZE;				//看注释，这里之所以能这样是因为一直维护目录文件的大小都是block size的倍数
 	for (i = 0; i < nblock; i++) {
 		if ((r = file_get_block(dir, i, &blk)) < 0)
 			return r;
