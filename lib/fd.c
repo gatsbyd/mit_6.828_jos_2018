@@ -108,13 +108,13 @@ fd_close(struct Fd *fd, bool must_exist)
 		return (must_exist ? r : 0);
 	if ((r = dev_lookup(fd->fd_dev_id, &dev)) >= 0) {
 		if (dev->dev_close)
-			r = (*dev->dev_close)(fd);
+			r = (*dev->dev_close)(fd);				//调用dev_close()
 		else
 			r = 0;
 	}
 	// Make sure fd is unmapped.  Might be a no-op if
 	// (*dev->dev_close)(fd) already unmapped it.
-	(void) sys_page_unmap(0, fd);
+	(void) sys_page_unmap(0, fd);					//解除当前进程fd的映射关系，对于fs进程又可以分配该Fd结构对应的OpenFile结构
 	return r;
 }
 

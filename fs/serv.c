@@ -118,7 +118,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 	path[MAXPATHLEN-1] = 0;
 
 	// Find an open file ID
-	if ((r = openfile_alloc(&o)) < 0) {
+	if ((r = openfile_alloc(&o)) < 0) {					//从opentab数组中分配一个OpenFile结构
 		if (debug)
 			cprintf("openfile_alloc failed: %e", r);
 		return r;
@@ -127,7 +127,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 
 	// Open the file
 	if (req->req_omode & O_CREAT) {
-		if ((r = file_create(path, &f)) < 0) {
+		if ((r = file_create(path, &f)) < 0) {			//根据path分配一个File结构
 			if (!(req->req_omode & O_EXCL) && r == -E_FILE_EXISTS)
 				goto try_open;
 			if (debug)
@@ -158,7 +158,7 @@ try_open:
 	}
 
 	// Save the file pointer
-	o->o_file = f;
+	o->o_file = f;										//保存File结构到OpenFile结构
 
 	// Fill out the Fd structure
 	o->o_fd->fd_file.id = o->o_fileid;
@@ -346,8 +346,8 @@ serve(void)
 			cprintf("Invalid request code %d from %08x\n", req, whom);
 			r = -E_INVAL;
 		}
-		ipc_send(whom, r, pg, perm);
-		sys_page_unmap(0, fsreq);
+		ipc_send(whom, r, pg, perm);			//发送给普通进程，pg只有open操作时才不为NULL，这时pg指向被打开的文件的Fd结构
+		sys_page_unmap(0, fsreq);				//对于发起调用的进程fsipc()函数dstava变量也指向该Fd结构
 	}
 }
 
@@ -365,6 +365,6 @@ umain(int argc, char **argv)
 	serve_init();	//初始化opentab数组
 	fs_init();		//设置缺页处理函数，初始化super指针，初始化bitmap指针
     fs_test();		//测试fs进程的函数，定义在fs/test.c中，Exercise 4完成后能全部通过
-	serve();		//进入无限循环，接受并处理其他进程发送的PIC请求
+	serve();		//进入无限循环，接受并处理其他进程发送的RPC请求
 }
 

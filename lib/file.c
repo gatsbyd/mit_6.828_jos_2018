@@ -13,7 +13,7 @@ union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 // dstva: virtual address at which to receive reply page, 0 if none.
 // Returns result from the file server.
 static int
-fsipc(unsigned type, void *dstva)
+fsipc(unsigned type, void *dstva)		//type, fsipcbuf是发送给fs进程的数据。dstava和fsipc()的返回值是从fs进程接收的值
 {
 	static envid_t fsenv;
 	if (fsenv == 0)
