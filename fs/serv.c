@@ -68,8 +68,8 @@ openfile_alloc(struct OpenFile **o)
 
 	// Find an available open-file table entry
 	for (i = 0; i < MAXOPEN; i++) {
-		switch (pageref(opentab[i].o_fd)) {
-		case 0:
+		switch (pageref(opentab[i].o_fd)) {			//如果fd对应的物理页被2个虚拟地址映射了，那么说明该fd结构已经被分配了。
+		case 0:										//2个虚拟地址映射分别出现在fs进程和用户进程的页表中
 			if ((r = sys_page_alloc(0, opentab[i].o_fd, PTE_P|PTE_U|PTE_W)) < 0)
 				return r;
 			/* fall through */
@@ -90,6 +90,7 @@ openfile_lookup(envid_t envid, uint32_t fileid, struct OpenFile **po)
 	struct OpenFile *o;
 
 	o = &opentab[fileid % MAXOPEN];
+	// cprintf("openfile_lookup():pageref(o->o_fd)=%d\n", pageref(o->o_fd));
 	if (pageref(o->o_fd) <= 1 || o->o_fileid != fileid)
 		return -E_INVAL;
 	*po = o;
@@ -214,7 +215,17 @@ serve_read(envid_t envid, union Fsipc *ipc)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// Lab 5: Your code here:
-	return 0;
+	struct OpenFile *o;
+	int r;
+	r = openfile_lookup(envid, req->req_fileid, &o);
+	// cprintf("serve_read():req->req_fileid = %d\n", req->req_fileid);
+	if (r < 0)		//通过fileid找到Openfile结构
+		return r;
+	if ((r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset)) < 0)	//调用fs.c中函数进行读操作
+		return r;
+	o->o_fd->fd_offset += r;
+	
+	return r;
 }
 
 
@@ -337,9 +348,9 @@ umain(int argc, char **argv)
 	outw(0x8A00, 0x8A00);
 	cprintf("FS can do I/O\n");
 
-	serve_init();	//
+	serve_init();	//初始化opentab数组
 	fs_init();		//设置缺页处理函数，初始化super指针，初始化bitmap指针
-    fs_test();		//测试函数
-	serve();
+    fs_test();		//测试fs进程的函数，定义在fs/test.c中，Exercise 4完成后能全部通过
+	serve();		//进入无限循环，接受并处理其他进程发送的PIC请求
 }
 
