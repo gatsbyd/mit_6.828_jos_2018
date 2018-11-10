@@ -16,7 +16,7 @@ umain(int argc, char **argv)
 
 	if ((r = fork()) < 0)
 		panic("fork: %e", r);
-	if (r == 0) {
+	if (r == 0) {			//子进程走这里
 		seek(fd, 0);
 		cprintf("going to read in child (might page fault if your sharing is buggy)\n");
 		if ((n2 = readn(fd, buf2, sizeof buf2)) != n)
@@ -28,7 +28,7 @@ umain(int argc, char **argv)
 		close(fd);
 		exit();
 	}
-	wait(r);
+	wait(r);				//父进程阻塞，直到子进程执行完毕
 	if ((n2 = readn(fd, buf2, sizeof buf2)) != n)
 		panic("read in parent got %d, then got %d", n, n2);
 	cprintf("read in parent succeeded\n");
