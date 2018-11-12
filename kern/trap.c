@@ -180,6 +180,7 @@ trap_init_percpu(void)
 	// when we trap to the kernel.
 	thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - cid * (KSTKSIZE + KSTKGAP);
 	thiscpu->cpu_ts.ts_ss0 = GD_KD;
+	thiscpu->cpu_ts.ts_iomb = sizeof(struct Taskstate);			//修复这里的一个bug
 
 	// Initialize the TSS slot of the gdt.
 	gdt[(GD_TSS0 >> 3)+cid] = SEG16(STS_T32A, (uint32_t) (&(thiscpu->cpu_ts)),
