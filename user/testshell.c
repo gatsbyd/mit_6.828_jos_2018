@@ -12,8 +12,8 @@ umain(int argc, char **argv)
 
 	close(0);
 	close(1);
-	opencons();
-	opencons();
+	opencons();				//分配文件描述符0
+	opencons();				//分配文件描述符1
 
 	if ((rfd = open("testshell.sh", O_RDONLY)) < 0)
 		panic("open testshell.sh: %e", rfd);

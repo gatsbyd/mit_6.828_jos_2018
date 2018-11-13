@@ -68,8 +68,8 @@ openfile_alloc(struct OpenFile **o)
 
 	// Find an available open-file table entry
 	for (i = 0; i < MAXOPEN; i++) {
-		switch (pageref(opentab[i].o_fd)) {
-		case 0:
+		switch (pageref(opentab[i].o_fd)) {			//如果fd对应的物理页被2个虚拟地址映射了，那么说明该fd结构已经被分配了。
+		case 0:										//2个虚拟地址映射分别出现在fs进程和用户进程的页表中
 			if ((r = sys_page_alloc(0, opentab[i].o_fd, PTE_P|PTE_U|PTE_W)) < 0)
 				return r;
 			/* fall through */
@@ -90,6 +90,7 @@ openfile_lookup(envid_t envid, uint32_t fileid, struct OpenFile **po)
 	struct OpenFile *o;
 
 	o = &opentab[fileid % MAXOPEN];
+	// cprintf("openfile_lookup():pageref(o->o_fd)=%d\n", pageref(o->o_fd));
 	if (pageref(o->o_fd) <= 1 || o->o_fileid != fileid)
 		return -E_INVAL;
 	*po = o;
@@ -117,7 +118,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 	path[MAXPATHLEN-1] = 0;
 
 	// Find an open file ID
-	if ((r = openfile_alloc(&o)) < 0) {
+	if ((r = openfile_alloc(&o)) < 0) {					//从opentab数组中分配一个OpenFile结构
 		if (debug)
 			cprintf("openfile_alloc failed: %e", r);
 		return r;
@@ -126,7 +127,7 @@ serve_open(envid_t envid, struct Fsreq_open *req,
 
 	// Open the file
 	if (req->req_omode & O_CREAT) {
-		if ((r = file_create(path, &f)) < 0) {
+		if ((r = file_create(path, &f)) < 0) {			//根据path分配一个File结构
 			if (!(req->req_omode & O_EXCL) && r == -E_FILE_EXISTS)
 				goto try_open;
 			if (debug)
@@ -157,7 +158,7 @@ try_open:
 	}
 
 	// Save the file pointer
-	o->o_file = f;
+	o->o_file = f;										//保存File结构到OpenFile结构
 
 	// Fill out the Fd structure
 	o->o_fd->fd_file.id = o->o_fileid;
@@ -214,7 +215,17 @@ serve_read(envid_t envid, union Fsipc *ipc)
 		cprintf("serve_read %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// Lab 5: Your code here:
-	return 0;
+	struct OpenFile *o;
+	int r;
+	r = openfile_lookup(envid, req->req_fileid, &o);
+	// cprintf("serve_read():req->req_fileid = %d\n", req->req_fileid);
+	if (r < 0)		//通过fileid找到Openfile结构
+		return r;
+	if ((r = file_read(o->o_file, ret->ret_buf, req->req_n, o->o_fd->fd_offset)) < 0)	//调用fs.c中函数进行读操作
+		return r;
+	o->o_fd->fd_offset += r;
+	
+	return r;
 }
 
 
@@ -229,7 +240,21 @@ serve_write(envid_t envid, struct Fsreq_write *req)
 		cprintf("serve_write %08x %08x %08x\n", envid, req->req_fileid, req->req_n);
 
 	// LAB 5: Your code here.
-	panic("serve_write not implemented");
+	struct OpenFile *o;
+	int r;
+	if ((r = openfile_lookup(envid, req->req_fileid, &o)) < 0) {
+		return r;
+	}
+	int total = 0;
+	while (1) {
+		r = file_write(o->o_file, req->req_buf, req->req_n, o->o_fd->fd_offset);
+		if (r < 0) return r;
+		total += r;
+		o->o_fd->fd_offset += r;
+		if (req->req_n <= total)
+			break;
+	}
+	return total;
 }
 
 // Stat ipc->stat.req_fileid.  Return the file's struct Stat to the
@@ -321,8 +346,8 @@ serve(void)
 			cprintf("Invalid request code %d from %08x\n", req, whom);
 			r = -E_INVAL;
 		}
-		ipc_send(whom, r, pg, perm);
-		sys_page_unmap(0, fsreq);
+		ipc_send(whom, r, pg, perm);			//发送给普通进程，pg只有open操作时才不为NULL，这时pg指向被打开的文件的Fd结构
+		sys_page_unmap(0, fsreq);				//对于发起调用的进程fsipc()函数dstava变量也指向该Fd结构
 	}
 }
 

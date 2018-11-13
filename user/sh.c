@@ -25,12 +25,12 @@ runcmd(char* s)
 	int argc, c, i, r, p[2], fd, pipe_child;
 
 	pipe_child = 0;
-	gettoken(s, 0);
+	gettoken(s, 0);			//相当于初始化，并没有开始解析
 
 again:
 	argc = 0;
 	while (1) {
-		switch ((c = gettoken(0, &t))) {
+		switch ((c = gettoken(0, &t))) {		//获取下一个token
 
 		case 'w':	// Add an argument
 			if (argc == MAXARGS) {
@@ -55,7 +55,14 @@ again:
 			// then close the original 'fd'.
 
 			// LAB 5: Your code here.
-			panic("< redirection not implemented");
+			if ((fd = open(t, O_RDONLY)) < 0) {
+				cprintf("open %s for write: %e", t, fd);
+				exit();
+			}
+			if (fd != 0) {
+				dup(fd, 0);
+				close(fd);
+			}
 			break;
 
 		case '>':	// Output redirection
@@ -75,7 +82,7 @@ again:
 			break;
 
 		case '|':	// Pipe
-			if ((r = pipe(p)) < 0) {
+			if ((r = pipe(p)) < 0) {				//创建两个文件描述符
 				cprintf("pipe: %e", r);
 				exit();
 			}
@@ -85,20 +92,20 @@ again:
 				cprintf("fork: %e", r);
 				exit();
 			}
-			if (r == 0) {
+			if (r == 0) {			//子进程走这里
 				if (p[0] != 0) {
-					dup(p[0], 0);
-					close(p[0]);
+					dup(p[0], 0);	//文件描述符0和p[0]共享Fd结构
+					close(p[0]);	//关闭文件描述符p[0]
 				}
-				close(p[1]);
+				close(p[1]);		//在进程中关闭p[1]
 				goto again;
-			} else {
+			} else {				//当前进程
 				pipe_child = r;
 				if (p[1] != 1) {
 					dup(p[1], 1);
 					close(p[1]);
 				}
-				close(p[0]);
+				close(p[0]);		//在父进程中关闭p[0]
 				goto runit;
 			}
 			panic("| not implemented");
@@ -203,7 +210,7 @@ _gettoken(char *s, char **p1, char **p2)
 	*p1 = 0;
 	*p2 = 0;
 
-	while (strchr(WHITESPACE, *s))
+	while (strchr(WHITESPACE, *s))		//跳过空白符
 		*s++ = 0;
 	if (*s == 0) {
 		if (debug > 1)

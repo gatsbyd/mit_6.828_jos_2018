@@ -223,6 +223,13 @@ read_esp(void)
 	return esp;
 }
 
+static inline uint16_t
+read_cs(void) {
+	uint16_t cs;
+	asm volatile("movw %%cs, %0" : "=r"(cs));
+	return cs;
+}
+
 static inline void
 cpuid(uint32_t info, uint32_t *eaxp, uint32_t *ebxp, uint32_t *ecxp, uint32_t *edxp)
 {

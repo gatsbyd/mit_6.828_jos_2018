@@ -13,7 +13,7 @@ union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 // dstva: virtual address at which to receive reply page, 0 if none.
 // Returns result from the file server.
 static int
-fsipc(unsigned type, void *dstva)
+fsipc(unsigned type, void *dstva)		//type, fsipcbuf是发送给fs进程的数据。dstava和fsipc()的返回值是从fs进程接收的值
 {
 	static envid_t fsenv;
 	if (fsenv == 0)
@@ -141,7 +141,11 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
 	// LAB 5: Your code here
-	panic("devfile_write not implemented");
+	int r;
+	fsipcbuf.write.req_fileid = fd->fd_file.id;
+	fsipcbuf.write.req_n = n;
+	memmove(fsipcbuf.write.req_buf, buf, n);
+	return fsipc(FSREQ_WRITE, NULL);
 }
 
 static int

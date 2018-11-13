@@ -37,8 +37,8 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
-	mp_init();
-	lapic_init();
+	mp_init();		//初始化cpus数组，bootcpu指针，ncpu，LAPIC地址lapicaddr
+	lapic_init();	//初始化LAPIC，将虚拟地址MMIOBASE映射到lapicaddr(lapicaddr is the physical address of the LAPIC's 4K MMIO region)
 
 	// Lab 4 multitasking initialization functions
 	pic_init();
@@ -49,12 +49,12 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
-
+	lock_kernel();	//BSP获取内核锁
 	// Starting non-boot CPUs
-	boot_aps();
+	boot_aps();		//将初始化代码拷贝到MPENTRY_PADDR处，然后依次启动所有AP
 
 	// Start fs.
-	ENV_CREATE(fs_fs, ENV_TYPE_FS);
+	ENV_CREATE(fs_fs, ENV_TYPE_FS);		//创建文件系统Env
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
@@ -66,7 +66,7 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_icode, ENV_TYPE_USER);
+	ENV_CREATE(user_spawnhello, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
@@ -95,7 +95,7 @@ boot_aps(void)
 
 	// Boot each AP one at a time
 	for (c = cpus; c < cpus + ncpu; c++) {
-		if (c == cpus + cpunum())  // We've started already.
+		if (c == cpus + cpunum())  // We've started already. 现在运行在BSP
 			continue;
 
 		// Tell mpentry.S what stack to use 
@@ -117,18 +117,17 @@ mp_main(void)
 	cprintf("SMP: CPU %d starting\n", cpunum());
 
 	lapic_init();
-	env_init_percpu();
-	trap_init_percpu();
-	xchg(&thiscpu->cpu_status, CPU_STARTED); // tell boot_aps() we're up
+	env_init_percpu();			//设置GDT，每个CPU都需要执行一次
+	trap_init_percpu();			//安装TSS描述符，每个CPU都需要执行一次
+	xchg(&thiscpu->cpu_status, CPU_STARTED); // tell boot_aps() we're up，需要原子操作
 
 	// Now that we have finished some basic setup, call sched_yield()
 	// to start running processes on this CPU.  But make sure that
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
-
-	// Remove this after you finish Exercise 6
-	for (;;);
+	lock_kernel();
+	sched_yield();
 }
 
 /*
