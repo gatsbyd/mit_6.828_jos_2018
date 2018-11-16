@@ -73,8 +73,12 @@ struct e1000_tdh {
        uint16_t rsv;
 };
 
+enum {
+       E_TRANSMIT_RETRY = 1,
+};
 
 int e1000_attachfn(struct pci_func *pcif);
 static void e1000_transmit_init();
+int e1000_transmit(void *data, size_t len);
 
 #endif  // SOL >= 6

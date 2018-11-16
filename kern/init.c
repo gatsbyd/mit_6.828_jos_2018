@@ -44,7 +44,7 @@ i386_init(void)
 	pic_init();
 
 	// Lab 6 hardware initialization functions
-	time_init();
+	time_init();	//init global var time_tick
 	pci_init();	//init e1000
 
 	// Acquire the big kernel lock before waking up APs
@@ -58,7 +58,7 @@ i386_init(void)
 
 #if !defined(TEST_NO_NS)
 	// Start ns.
-	ENV_CREATE(net_ns, ENV_TYPE_NS);
+	ENV_CREATE(net_ns, ENV_TYPE_NS);	//create network Env
 #endif
 
 #if defined(TEST)
