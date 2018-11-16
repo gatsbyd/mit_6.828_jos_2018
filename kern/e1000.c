@@ -78,7 +78,7 @@ e1000_transmit_init()
 int
 e1000_transmit(void *data, size_t len)
 {
-       uint32_t current = tdt->tdt;
+       uint32_t current = tdt->tdt;		//tail index in queue
        if(!(tx_desc_array[current].status & E1000_TXD_STAT_DD)) {
                return -E_TRANSMIT_RETRY;
        }
