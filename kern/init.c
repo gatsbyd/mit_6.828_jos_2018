@@ -45,7 +45,7 @@ i386_init(void)
 
 	// Lab 6 hardware initialization functions
 	time_init();
-	pci_init();
+	pci_init();	//init e1000
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
