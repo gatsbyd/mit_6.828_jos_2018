@@ -24,9 +24,6 @@ e1000_attachfn(struct pci_func *pcif)
 
 	e1000_transmit_init();
 
-	//test transmit
-  char *data = "transmit test";
-  e1000_transmit(data, 13);
 	return 0;
 }
 
