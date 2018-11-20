@@ -147,3 +147,23 @@ e1000_transmit(void *data, size_t len)
        tdt->tdt = next;
        return 0;
 }
+
+int
+e1000_receive(void *addr, size_t *len)
+{
+       static int32_t next = 0;
+       if(!(rx_desc_array[next].status & E1000_RXD_STAT_DD)) {	//simply tell client to retry
+               return -E_RECEIVE_RETRY;
+       }
+       if(rx_desc_array[next].errors) {
+               cprintf("receive errors\n");
+               return -E_RECEIVE_RETRY;
+       }
+       *len = rx_desc_array[next].length;
+       memcpy(addr, rx_buffer_array[next], *len);
+
+       rdt->rdt = (rdt->rdt + 1) % RXDESCS;
+       next = (next + 1) % RXDESCS;
+       return 0;
+}
+
