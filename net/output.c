@@ -22,9 +22,9 @@ output(envid_t ns_envid)
 			continue;
 		}
 
-    struct jif_pkt *pkt = &(nsipcbuf.pkt);
-    while (sys_pkt_send(pkt->jp_data, pkt->jp_len) < 0) {
-       sys_yield();
-    }	
+    	struct jif_pkt *pkt = &(nsipcbuf.pkt);
+    	while (sys_pkt_send(pkt->jp_data, pkt->jp_len) < 0) {
+       		sys_yield();
+    	}	
 	}
 }
