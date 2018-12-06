@@ -86,7 +86,7 @@ send_data(struct http_request *req, int fd)
 	}
 
 	//write to socket
-  if (write(req->sock, buf, stat.st_size) != stat.st_size) {
+  	if (write(req->sock, buf, stat.st_size) != stat.st_size) {
 		panic("Failed to send bytes to client");
 	}
 	free(buf);

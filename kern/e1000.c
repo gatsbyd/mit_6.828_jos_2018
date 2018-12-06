@@ -46,34 +46,34 @@ e1000_transmit_init()
                tx_desc_array[i].cmd = 0;
                tx_desc_array[i].status |= E1000_TXD_STAT_DD;
        }
-			 //TDLEN register
+	//设置队列长度寄存器
        struct e1000_tdlen *tdlen = (struct e1000_tdlen *)E1000REG(E1000_TDLEN);
        tdlen->len = TXDESCS;
 			 
-			 //TDBAL register
+	//设置队列基址低32位
        uint32_t *tdbal = (uint32_t *)E1000REG(E1000_TDBAL);
        *tdbal = PADDR(tx_desc_array);
 
-			 //TDBAH regsiter
+	//设置队列基址高32位
        uint32_t *tdbah = (uint32_t *)E1000REG(E1000_TDBAH);
        *tdbah = 0;
 
-		   //TDH register, should be init 0
+	//设置头指针寄存器
        tdh = (struct e1000_tdh *)E1000REG(E1000_TDH);
        tdh->tdh = 0;
 
-		   //TDT register, should be init 0
+	//设置尾指针寄存器
        tdt = (struct e1000_tdt *)E1000REG(E1000_TDT);
        tdt->tdt = 0;
 
-			 //TCTL register
+	//TCTL register
        struct e1000_tctl *tctl = (struct e1000_tctl *)E1000REG(E1000_TCTL);
        tctl->en = 1;
        tctl->psp = 1;
        tctl->ct = 0x10;
        tctl->cold = 0x40;
 
-			 //TIPG register
+	//TIPG register
        struct e1000_tipg *tipg = (struct e1000_tipg *)E1000REG(E1000_TIPG);
        tipg->ipgt = 10;
        tipg->ipgr1 = 4;
@@ -100,7 +100,7 @@ get_ra_address(uint32_t mac[], uint32_t *ral, uint32_t *rah)
 
 static void
 e1000_receive_init()
-{			 //RDBAL and RDBAH register
+{       //设置接收队列基址寄存器
        uint32_t *rdbal = (uint32_t *)E1000REG(E1000_RDBAL);
        uint32_t *rdbah = (uint32_t *)E1000REG(E1000_RDBAH);
        *rdbal = PADDR(rx_desc_array);
@@ -110,11 +110,11 @@ e1000_receive_init()
        for (i = 0; i < RXDESCS; i++) {
                rx_desc_array[i].addr = PADDR(rx_buffer_array[i]);
        }
-			 //RDLEN register
+        //设置接收队列长度寄存器
        struct e1000_rdlen *rdlen = (struct e1000_rdlen *)E1000REG(E1000_RDLEN);
        rdlen->len = RXDESCS;
 
-			 //RDH and RDT register
+	//设置头尾指针寄存器
        rdh = (struct e1000_rdh *)E1000REG(E1000_RDH);
        rdt = (struct e1000_rdt *)E1000REG(E1000_RDT);
        rdh->rdh = 0;
@@ -123,6 +123,7 @@ e1000_receive_init()
        uint32_t *rctl = (uint32_t *)E1000REG(E1000_RCTL);
        *rctl = E1000_RCTL_EN | E1000_RCTL_BAM | E1000_RCTL_SECRC;
 
+        //除了本网卡的物理地址的包都过滤掉
        uint32_t *ra = (uint32_t *)E1000REG(E1000_RA);
        uint32_t ral, rah;
        get_ra_address(E1000_MAC, &ral, &rah);
@@ -162,7 +163,7 @@ e1000_receive(void *addr, size_t *len)
        *len = rx_desc_array[next].length;
        memcpy(addr, rx_buffer_array[next], *len);
 
-       rdt->rdt = (rdt->rdt + 1) % RXDESCS;
+       rdt->rdt = (rdt->rdt + 1) % RXDESCS;      //add tail index
        next = (next + 1) % RXDESCS;
        return 0;
 }
