@@ -205,8 +205,10 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if (ret) return ret;	//bad_env
 
 	if ((va >= (void*)UTOP) || (ROUNDDOWN(va, PGSIZE) != va)) return -E_INVAL;		//一系列判定
-	int flag = PTE_U | PTE_P;
-	if ((perm & flag) != flag) return -E_INVAL;
+	// check the perm correctly, as comments
+	if (((perm & PTE_U) == 0) || ((perm & PTE_P) == 0)) return -E_INVAL;
+	if((perm & ~PTE_SYSCALL) != 0)
+		return -E_INVAL;
 
 	struct PageInfo *pg = page_alloc(1);			//分配物理页
 	if (!pg) return -E_NO_MEM;
@@ -265,8 +267,9 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if (!pg) return -E_INVAL;
 
 	//	-E_INVAL if perm is inappropriate (see sys_page_alloc).
-	int flag = PTE_U|PTE_P;
-	if ((perm & flag) != flag) return -E_INVAL;
+	if (((perm & PTE_U) == 0) || ((perm & PTE_P) == 0)) return -E_INVAL;
+	if((perm & ~PTE_SYSCALL) != 0)
+		return -E_INVAL;
 
 	//	-E_INVAL if (perm & PTE_W), but srcva is read-only in srcenvid's
 	//		address space.
